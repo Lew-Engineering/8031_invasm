@@ -66,14 +66,18 @@ Package (Version 2.00)", available at
 
   https://www.keysight.com/us/en/lib/software-detail/instrument-firmware-software/10391b-inverse-assembler-development-package-version-0200-sw575.html
 
-  A direct download link is
+A direct download link is
 
   https://www.keysight.com/us/en/assets/ndx/9018-31995/miscellaneous/10391B-Inverse-Assembler-Development-Package-v2-0.zip
 
-The above package must be installed on a PC-DOS / MS-DOS system in order to
-compile the inverse assemblers from source.  The DOSBox application can be
-used to run the assembler in a virutal machine on a modern Windows or MacOS
-computer.
+The above development package must be installed on a PC-DOS / MS-DOS system in
+order to compile the inverse assemblers from source.  The DOSBox application
+can be used to run the assembler in a virutal machine on a modern Windows or
+MacOS computer.
+
+Documentation for the development package is at
+
+  https://www.keysight.com/us/en/assets/9018-01037/reference-guides/9018-01037.pdf
 
 
 # DIRECTORIES
