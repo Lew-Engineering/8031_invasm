@@ -15,6 +15,7 @@ The inverse assembler allows the assembly language mnemonics being executed
 on the target system to be shown on the logic analyzer display when the logic
 analyzer is probing the microcontroller's data/address bus and control signals.
 
+![intro](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/97f948a8-5f0e-4636-ade7-1ddcb41b13f8)
 
 # SUPPORTED LOGIC ANALYZERS
 
