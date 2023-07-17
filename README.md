@@ -103,11 +103,35 @@ Use the .BAT files described above, or see the instructions at the top of the
 I8031.S or I80C310.S files for more details.
 
 
-USAGE
------
+# USAGE
 
 Detailed instructions for compiling, uploading, and using the inverse assemblers
 are included at the top of the I8031.S and I80C310.S files.
 
 The instructions also describe how to configure the logic analyzer and the
 connections to the microcontroller signal pins.
+
+# LOGIC ANALYZER CONFIGURATION
+
+The screenshots below are an example of how to set up the Agilent 1671G to be used with the 8031 inverse assembler.
+The setup for other logic analyzer models is similar, but may not be exactly the same.
+
+Loading the inverse assembler screen
+![file_load](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/0ca3e452-1bc0-41e5-acc0-a64c33b78511)
+
+Configuration screen
+![config](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/0c6c632d-5f0a-4529-9e9f-e567629411c8)
+
+Format screen
+![format_1](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/8b2933a6-dc8e-4277-8e52-bc92720aa1fe)
+![format_2](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/e4d2f25a-e735-45f2-ab77-d5dffec16688)
+
+Trigger screen
+![trigger_1](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/25abc2df-8cc8-4217-aecb-5ee27533d0ee)
+![trigger_2](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/a74df448-fafc-4311-b7c3-a77226e5583a)
+
+Master clock screen
+![master_clock](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/022279a4-d7a2-4c1b-918d-7e11bc6cebd5)
+
+Setup and hold screen
+![setup_hold](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/20e48fb2-7e50-47c1-b15d-a026ea04a1bc)
