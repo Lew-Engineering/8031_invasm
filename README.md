@@ -41,7 +41,7 @@ The I8031.S inverse assembler source supports the following devices:
 - 8031
 - 8051 (when using external ROM for code)
 - 80C31
-- 80C51
+- 80C51 (when using external ROM for code)
 - 8032
 - 8052 (when using external ROM for code)
 - 80C32
