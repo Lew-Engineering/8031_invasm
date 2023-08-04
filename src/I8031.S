@@ -14,6 +14,7 @@
 *
 * Edit History:
 *
+* 08-03-23 - Fixed missing XCHD and DIV opcodes.
 * 06-29-23 - First released version.
 * 03-09-23 - Started file.
 * ****************************************************************************
@@ -55,9 +56,9 @@
 *    model.
 *
 *    Note that you cannot just copy the raw "I8031.R" file via floppy disk or
-*      FTP to the logic analyzer.  It needs to be transformed to an inverse
-*      assembler format by the download process above, which creates the
-*      file "I8031".
+*    FTP to the logic analyzer.  It needs to be transformed to an inverse
+*    assembler format by the download process above, which creates the
+*    file "I8031".
 *
 * 3. Load the I8031 inverse assembler into memory via the logic analyzer's
 *    front panel controls.  Choose the file named "I8031".
@@ -135,7 +136,7 @@
 *
 * 7. After capturing data from the target system, if the DATA column shows
 *    "undecoded data" or if the opcodes do not make sense (due to misalignment
-*    with the start of an opcode, scroll the listing display so that the
+*    with the start of an opcode), scroll the listing display so that the
 *    data cycle for the start of a valid opcode is at the top line of the
 *    display and select the "Invasm" field at the top of the screen.  This will
 *    resychronize the inverse assembler with captured data.
@@ -206,7 +207,7 @@ LEN_INSTR       VARIABLE        0       ; Length of current instruction to
 DEC1_FMT        FORMAT          1,DEC,1          ; 1 bit,   in 1 decimal digit
 DEC3_FMT        FORMAT          3,DEC,1          ; 3 bits,  in 1 decimal digit
 HEX8_FMT        FORMAT          8,HEX,2          ; 8 bits,  in 2 hex digits
-HEX11_FMT       FORMAT          11,HEX,4         ; 16 bits, in 4 hex digits
+HEX11_FMT       FORMAT          11,HEX,4         ; 11 bits, in 4 hex digits
 HEX16_FMT       FORMAT          16,HEX,4         ; 16 bits, in 4 hex digits
 
 * Current state for this cycle
@@ -252,7 +253,7 @@ DUMMY_9A        CONSTANT        01010101010101010101000010101001B ; 0x9*
 DUMMY_AA        CONSTANT        10101010101010101010011111001010B ; 0xA*
 DUMMY_BA        CONSTANT        01010101010101010101010101001010B ; 0xB*
 DUMMY_CA        CONSTANT        01010101010101010101000101001010B ; 0xC*
-DUMMY_DA        CONSTANT        10101010101010100000010101001010B ; 0xD*
+DUMMY_DA        CONSTANT        10101010101010100101010101001010B ; 0xD*
 DUMMY_EA        CONSTANT        01010101010101010101000101011001B ; 0xE*
 DUMMY_FA        CONSTANT        01010101010101010101000101011001B ; 0xF*
 
@@ -425,7 +426,7 @@ OUTPUT_OPCODE
           CALL  GROUP_AY                ; ORL  AJMP  MOV   INC   MUL  MOV
           CALL  GROUP_BY                ; ANL  ACALL CPL   CPL   CJNE CJNE
           CALL  GROUP_CY                ; PUSH AJMP  CLR   CLR   SWAP XCH
-          CALL  GROUP_DY                ; POP  ACALL SETB  SETB  DA   XCHDD/DJNZ
+          CALL  GROUP_DY                ; POP  ACALL SETB  SETB  DA   XCHD/DJNZ
           CALL  GROUP_EY                ; MOVX AJMP  MOVX  MOVX  CLR  MOV
           CALL  GROUP_FY                ; MOVX ACALL MOVX  MOVX  CPL  MOV
         CASE_END
@@ -993,13 +994,19 @@ GROUP_8Y
         IF      3,0 >= 5 THEN GOTO GROUP_REGULAR
         
         * Special case opcodes
-        CASE_OF 1,0
+        CASE_OF 2,0
           GOTO   OPCODE_SJMP            ; 0x80 SJMP rel
           GOTO   OPCODE_AJMP            ; 0x81 AJMP addr11
           GOTO   OPCODE_ANL_C           ; 0x82 ANL C, bit
-          OUTPUT "MOVC A,@A+PC"         ; 0x83 MOVC A,@A+PC
+          GOTO   OPCODE_MOVC            ; 0x83 MOVC A,@A+PC
+          OUTPUT "DIV AB"               ; 0x84 DIV AB
         CASE_END
 	
+        RETURN
+
+OPCODE_MOVC
+        OUTPUT "MOVC A,@A+PC"
+
         * On 8031 skip the dummy cycle that occurs after MOVC
         * On DS80C310 skip the next instruction that occurs right after MOVC
 	INCREMENT CAPT_REL              ; ALE
@@ -1204,7 +1211,8 @@ OPCODE_CLR_BIT
 * Group 0xDy opcodes
 * ****************************************************************************
 GROUP_DY
-        * DJNZ opcode with regular operands (no 0xD4, 0xD6, or 0xD7)
+        * DJNZ opcode with regular operands (no 0xD4)
+        * XCHD with @R0 or @R1 0xD6, or 0xD7)
         IF      3,0 = 5 THEN GOTO GROUP_REGULAR
         IF      3,0 >=8 THEN GOTO GROUP_REGULAR
         
@@ -1215,6 +1223,9 @@ GROUP_DY
           GOTO   OPCODE_SETB            ; 0xD2 SETB bit
           OUTPUT "SETB C"               ; 0xD3 SETB C
           OUTPUT "DA A"                 ; 0xD4 DA A
+          NOP
+          OUTPUT "XCHD A, @R0"          ; 0xD6 XCHD A, @R0
+          OUTPUT "XCHD A, @R1"          ; 0xD7 XCHD A, @R0
         CASE_END
 	
         RETURN
