@@ -136,7 +136,7 @@ Master clock screen
 
 Setup and hold screen
 
-![setup_hold](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/20e48fb2-7e50-47c1-b15d-a026ea04a1bc)
+![setup_hold](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/7e59d506-4db0-47fa-b896-1b678c9991d5)
 
 Trigger screen
 
