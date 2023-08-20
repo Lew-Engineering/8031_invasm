@@ -7,13 +7,15 @@
 *           This file is to be compiled by the HP 10391B Inverse Assembler
 *           Development Package V2.0 for HP/Agilent Logic Analyzers.
 *
-*           Tested with the Agilent 1671G, but should be compaitble with other
+*           Tested with the Agilent 1671G, but should be compatible with other
 *           models (165X, 166X, 167X, 165XX, etc.).
 *
 * Written by Eddie Lew
 *
 * Edit History:
 *
+* 08-20-23 - Fixed back-to-back MOVC and MOVX instructions.
+*            Updated instructions to indicate to use -0.5ns/4.5ns setup/hold.
 * 08-03-23 - Fixed missing XCHD and DIV opcodes.
 * 06-29-23 - First released version.
 * 03-09-23 - Started file.
@@ -47,7 +49,7 @@
 *    where
 *      XXXXXXXX is the size of "I8031.R" plus 1, in ASCII decimal with leading
 *        zeros
-*      Z is the null charcter (it represents the 'B' used in ialdown command)
+*      Z is the null character (it represents the 'B' used in ialdown command)
 *      ... is the contents of the "I8031.R" file
 *      \n is the newline character 0xA - this is required!    
 *
@@ -127,9 +129,9 @@
 *    That is, clock when
 *        ALE fall OR PSEN- rise OR WR- fall OR RD- rise
 *
-*    Setup time should be 0.0 ns, hold time 4.0 ns.
+*    Setup time should be -0.5 ns, hold time 4.5 ns.
 *    Improper setup/hold time will cause the incorrect state of the 4 clock
-*    signls to appear in the STAT label.
+*    signals to appear in the STAT label.
 *
 * 6. After loading the I8031 inverse assembler file, select "Invasm" in place
 *    of "Hex" for the "DATA" column in the listing display.
@@ -139,7 +141,7 @@
 *    with the start of an opcode), scroll the listing display so that the
 *    data cycle for the start of a valid opcode is at the top line of the
 *    display and select the "Invasm" field at the top of the screen.  This will
-*    resychronize the inverse assembler with captured data.
+*    resynchronize the inverse assembler with captured data.
 *    Note this "Invasm" field is NOT the same one used for the DATA column.
 *
 * 8. Note that since the 8031 uses a multiplexed address/data bus, the 
@@ -151,7 +153,7 @@
 * 9. Decoded instructions will show the absolute 16-bit address as an operand
 *    in place of the 8-bit relative address or 11-bit 2K window address.
 *    Otherwise the symbol name will be displayed if ADDR symbols are defined,
-*    either as user symbols or loaded via the Symbol Utillity.  Symbols are
+*    either as user symbols or loaded via the Symbol Utility.  Symbols are
 *    only used for the program address space, not the data address space.
 *
 * 10. When setting a trigger based on the address, this must be done when
@@ -177,7 +179,7 @@ CPU_DS80C310    CONSTANT        1
 CPU_TYPE        CONSTANT        CPU_8031
 
 * ****************************************************************************
-* Initilization	
+* Initialization	
 * ****************************************************************************	
 
 * Set list title row strings for the DATA label column
@@ -191,6 +193,7 @@ CPU_TYPE        CONSTANT        CPU_8031
 * ****************************************************************************	
 
 CAPT_REL        VARIABLE        0       ; Relative capture location
+CAPT_REL_SAVE   VARIABLE        0       ; Save CAPT_REL for restore
 ADDR_HIGH       VARIABLE        0       ; High byte of 16-bit address
 CNT_DUMMY       VARIABLE        0       ; Number of dummy bytes to add
 OPCODE_L        VARIABLE        0       ; Lower 4 bits of opcode for dummy cyc
@@ -371,7 +374,7 @@ UNKNOWN
         RETURN
 
 * ****************************************************************************
-* ALE occured to latch 16-bit address
+* ALE occurred to latch 16-bit address
 * ****************************************************************************
 PROCESS_ADDR
         OUTPUT  "  addr "
@@ -561,7 +564,7 @@ LOOP_DUMMY
 * ****************************************************************************
 * Opcodes with regular addressing modes
 *
-* x4 - Immeadiate, next byte has 8-bit constant (some exceptions)
+* x4 - Immediate, next byte has 8-bit constant (some exceptions)
 * x5 - Memory direct, next byte has internal memory location 
 * x6 - Register indirect @R0
 * x7 - Register indirect @R1
@@ -998,27 +1001,30 @@ GROUP_8Y
           GOTO   OPCODE_SJMP            ; 0x80 SJMP rel
           GOTO   OPCODE_AJMP            ; 0x81 AJMP addr11
           GOTO   OPCODE_ANL_C           ; 0x82 ANL C, bit
-          GOTO   OPCODE_MOVC            ; 0x83 MOVC A,@A+PC
+          GOTO   OPCODE_MOVC_PC         ; 0x83 MOVC A,@A+PC
           OUTPUT "DIV AB"               ; 0x84 DIV AB
         CASE_END
 	
         RETURN
 
-OPCODE_MOVC
+        * 0x83 MOVC A,@A+PC
+OPCODE_MOVC_PC
         OUTPUT "MOVC A,@A+PC"
 
-        * On 8031 skip the dummy cycle that occurs after MOVC
-        * On DS80C310 skip the next instruction that occurs right after MOVC
-	INCREMENT CAPT_REL              ; ALE
-        INCREMENT CAPT_REL              ; Data
-
+        * Save decoding location, to be restored below
+        LOAD   CAPT_REL
+        STORE  CAPT_REL_SAVE
+        
         * Skip dummy cycle
-        INCREMENT CAPT_REL              ; ALE
-        INCREMENT CAPT_REL              ; Data
+        CALL   SKIP_NEXT_BYTE
 	
+        * On 8031 skip the second dummy cycle that occurs after MOVC
+        * On DS80C310 skip the next instruction that occurs right after MOVC
+        CALL   SKIP_NEXT_BYTE
+
         * Tag cycles as external memory read from MOVC
-MARK_MOVCP_RD
-        INCREMENT CAPT_REL              ; Address of memory read due to MOVC
+        CALL   SKIP_NEXT_BYTE
+        DECREMENT CAPT_REL              ; Address of memory read due to MOVC
         INPUT     REL,CAPT_REL
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_MOVC_RD           ; Mark as a memory read
@@ -1027,18 +1033,10 @@ MARK_MOVCP_RD
         INPUT     REL,CAPT_REL
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_MOVC_RD           ; Mark as a memory read
-	
-        * Back up so that dummy cycles can be marked on return
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
 
-        IF        CPU_TYPE=CPU_DS80C310 THEN RETURN
-
-        * On 8031 back up 2 more since it has 2 dummy cycles
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
+        * Restore decoding location so dummy cycles can be marked on return
+        LOAD    CAPT_REL_SAVE
+        STORE   CAPT_REL
 	
         RETURN
 	
@@ -1067,21 +1065,27 @@ GROUP_9Y
           GOTO   OPCODE_MOV_DPTR        ; 0x90 MOV DPTR, #data16
           GOTO   OPCODE_ACALL           ; 0x91 ACALL addr11
           GOTO   OPCODE_MOV_BITC        ; 0x92 MOV bit, C
-          OUTPUT "MOVC A,@A+DPTR"       ; 0x93 MOVC A, @A+DPTR
+          GOTO   OPCODE_MOVC_DPTR       ; 0x93 MOVC A, @A+DPTR
         CASE_END
-	
-        * On 8031 skip the dummy cycle that occurs after MOVC
-        * On DS80C310 skip the next instruction that occurs right after MOVC
-	INCREMENT CAPT_REL              ; ALE
-        INCREMENT CAPT_REL              ; Data
 
+        * 0x93 MOVC A, @A+DPTR
+OPCODE_MOVC_DPTR
+        OUTPUT "MOVC A,@A+DPTR"
+
+        * Save decoding location, to be restored below
+        LOAD   CAPT_REL
+        STORE  CAPT_REL_SAVE
+        
         * Skip dummy cycle
-        INCREMENT CAPT_REL              ; ALE
-        INCREMENT CAPT_REL              ; Data
+        CALL   SKIP_NEXT_BYTE
 	
+        * On 8031 skip the second dummy cycle that occurs after MOVC
+        * On DS80C310 skip the next instruction that occurs right after MOVC
+        CALL   SKIP_NEXT_BYTE
+
         * Tag cycles as external memory read from MOVC
-MARK_MOVCD_RD	
-        INCREMENT CAPT_REL              ; Address of memory read due to MOVC
+        CALL   SKIP_NEXT_BYTE
+        DECREMENT CAPT_REL              ; Address of memory read due to MOVC
         INPUT     REL,CAPT_REL
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_MOVC_RD           ; Mark as a memory read
@@ -1091,17 +1095,9 @@ MARK_MOVCD_RD
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_MOVC_RD           ; Mark as a memory read
 	
-        * Back up so that dummy cycles can be marked on return
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	
-        IF        CPU_TYPE=CPU_DS80C310 THEN RETURN
-
-        * On 8031 back up 2 more since it has 2 dummy cycles
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
+        * Restore decoding location so dummy cycles can be marked on return
+        LOAD    CAPT_REL_SAVE
+        STORE   CAPT_REL
 	
         RETURN
 
@@ -1259,14 +1255,20 @@ GROUP_EY
         CASE_END
 
         IF      7,0=0E4H THEN RETURN    ; Exit early for CLR
-        
+
+        * MOVX opcode
+
+        * Save decoding location, to be restored below
+        LOAD   CAPT_REL
+        STORE  CAPT_REL_SAVE
+
         * On 8031 skip the dummy cycle that occurs after MOVX
         * On DS80C310 skip the next instruction that occurs right after MOVX
-	INCREMENT CAPT_REL              ; ALE
-        INCREMENT CAPT_REL              ; Data
+        CALL   SKIP_NEXT_BYTE
 
         * Tag cycles as external memory read from MOVX
-        INCREMENT CAPT_REL              ; Address of memory read due to MOVX
+        CALL      SKIP_NEXT_BYTE        ; Address of memory read due to MOVX
+        DECREMENT CAPT_REL
         INPUT     REL,CAPT_REL
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_MOVX_RD_ADR       ; Mark as a memory read
@@ -1276,12 +1278,9 @@ GROUP_EY
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_MOVX_RD_DAT       ; Mark as a memory read
 
-        * Back up so that additional 8031 dummy cycles can be marked on return
-        IF        CPU_TYPE=CPU_DS80C310 THEN RETURN ; None for DS80C310
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
+        * Restore decoding location so dummy cycles can be marked on return
+        LOAD    CAPT_REL_SAVE
+        STORE   CAPT_REL
 	
         RETURN
 	
@@ -1302,14 +1301,20 @@ GROUP_FY
         CASE_END
 
         IF      7,0=0F4H THEN RETURN    ; Exit early for CPL
-        
+
+        * MOVX opcode
+
+        * Save decoding location, to be restored below
+        LOAD   CAPT_REL
+        STORE  CAPT_REL_SAVE
+
         * On 8031 skip the dummy cycle that occurs after MOVX
         * On DS80C310 skip the next instruction that occurs right after MOVX
-	INCREMENT CAPT_REL              ; ALE
-        INCREMENT CAPT_REL              ; Data
+        CALL   SKIP_NEXT_BYTE
 	
         * Tag cycles as external memory write from MOVX
-        INCREMENT CAPT_REL              ; Address of memory write due to MOVX
+        CALL      SKIP_NEXT_BYTE        ; Address of memory write due to MOVX
+        DECREMENT CAPT_REL
         INPUT     REL,CAPT_REL
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_MOVX_WR           ; Mark as a memory write
@@ -1319,12 +1324,9 @@ GROUP_FY
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_MOVX_WR           ; Mark as a memory write
 	
-        * Back up so that additional 8031 dummy cycles can be marked on return
-        IF        CPU_TYPE=CPU_DS80C310 THEN RETURN ; None for DS80C310
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
-	DECREMENT CAPT_REL
+        * Restore decoding location so dummy cycles can be marked on return
+        LOAD    CAPT_REL_SAVE
+        STORE   CAPT_REL
 	
         RETURN
 	
@@ -1383,10 +1385,10 @@ OPCODE_ACALL
         RETURN
 
 * ****************************************************************************
-* Output operand as one 16-bit immeadiate data "#data16"
+* Output operand as one 16-bit immediate data "#data16"
 * ****************************************************************************
 OUTPUT_OPER_DATA16
-        OUTPUT  "#"                     ; Immeadiate identified with leading #
+        OUTPUT  "#"                     ; Immediate identified with leading #
         CALL    GET_NEXT_BYTE           ; Get MSB byte, bits 8 to 15
         ROTATE  LEFT,8                  ; Move it into the upper 8-bits
         AND     0FF00H
@@ -1459,8 +1461,8 @@ GET_NEXT_BYTE
         INPUT     REL,CAPT_REL           ; Load captured state for this location
         IF        INPUT_ERROR <> 0 THEN RETURN
         LOAD      INPUT_TAG
-        IF        3,0=TAG_DUMMY THEN GOTO GET_NEXT_BYTE
-        IF        2,2=1 THEN GOTO GET_NEXT_BYTE
+        IF        2,0=TAG_DUMMY THEN GOTO GET_NEXT_BYTE ; Skip existing dummy
+        IF        2,2=1 THEN GOTO GET_NEXT_BYTE         ; Skip existing MOVC/X
 	
                                          ; Skip ALE state
         INCREMENT CAPT_REL               ; Point to operand data
@@ -1480,8 +1482,8 @@ GET_NEXT_DUMMY
         INPUT     REL,CAPT_REL           ; Load captured state for this location
         IF        INPUT_ERROR <> 0 THEN RETURN
         LOAD      INPUT_TAG
-        IF        2,0=TAG_DUMMY THEN GOTO GET_NEXT_DUMMY
-        IF        2,2=1 THEN GOTO GET_NEXT_DUMMY
+        IF        2,0=TAG_DUMMY THEN GOTO GET_NEXT_DUMMY ; Skip existing dummy
+        IF        2,2=1 THEN GOTO GET_NEXT_DUMMY         ; Skip existing MOVC/X
 
                                          ; Dummy ALE state
         INPUT     REL,CAPT_REL           ; Load captured addr for this location
@@ -1494,4 +1496,20 @@ GET_NEXT_DUMMY
         IF        INPUT_ERROR <> 0 THEN RETURN
         TAG_WITH  TAG_DUMMY              ; Tag it as dummy, will output
                                          ; "dummy data" on subsequent iteration
+        RETURN
+
+* ****************************************************************************
+* Skip next address/data pair
+* ****************************************************************************
+SKIP_NEXT_BYTE
+        * Skip existing dummy or external memory access cycles
+        INCREMENT CAPT_REL
+        INPUT     REL,CAPT_REL           ; Load captured state for this location
+        IF        INPUT_ERROR <> 0 THEN RETURN
+        LOAD      INPUT_TAG
+        IF        2,0=TAG_DUMMY THEN GOTO SKIP_NEXT_BYTE ; Skip existing dummy
+        IF        2,2=1 THEN GOTO SKIP_NEXT_BYTE         ; Skip existing MOVC/X
+	
+                                         ; Skip ALE state
+        INCREMENT CAPT_REL               ; Point to data
         RETURN
