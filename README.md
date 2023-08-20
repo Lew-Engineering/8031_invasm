@@ -143,3 +143,51 @@ Trigger screen
 ![trigger_1](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/25abc2df-8cc8-4217-aecb-5ee27533d0ee)
 
 ![trigger_2](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/a74df448-fafc-4311-b7c3-a77226e5583a)
+
+The following GPIB commands result in a similar configuration on the Agilent 1671G.
+Text including and after "//" are comments and are not part of the GPIB command.
+
+```
+:select 1                              // Allow ":machine*" commands to work
+
+:machine1:name '8031'                  // Set machine name to match CPU type
+
+:machine1:assign 1,2,3,4               // Pods 1,2,3,4 used
+:machine2:assign none                  // Machine2 not used
+
+:machine1:type state                   // Need state mode for inverse assembler
+:machine2:type off 
+                                       // Master clock definition
+:machine1:sformat:master J, fall       // ALE falling
+:machine1:sformat:master K, ris        // PSEN- rising
+:machine1:sformat:master L, ris        // WR- falling
+:machine1:sformat:master M, fall       // RD- rising
+
+:machine1:sformat:sethold 1,9          // Setup/hold -0.5 ns / 4.5 ns on all 
+:machine1:sformat:sethold 2,9          // 4 pods
+:machine1:sformat:sethold 3,9 
+:machine1:sformat:sethold 4,9 
+
+:machine1:sformat:remove all           // Remove all pod channel labels
+                                       // Assign channels to labels
+:machine1:sformat:label 'ADDR', pos, #H0, #H0000, #H0000, #H0000, #HFFFF 
+:machine1:sformat:label 'DATA', pos, #H0, #H0000, #H0000, #H0000, #H00FF 
+:machine1:sformat:label 'STAT', pos, #HF, #H0000, #H0000, #H0001, #H0000 
+
+                                       // Load inverse assembler from hard disk
+:mmemory:load:iassembler 'I8031',internal0,1,1 
+
+:machine1:strigger:clear all           // Clear state triggers
+
+:machine1:slist:remove                 // Clear state list columns
+:machine1:slist:column 1, 'ADDR', hex  // Address lines
+:machine1:slist:column 2, 'DATA', iass // Inverse assembler output
+:machine1:slist:column 3, 'STAT', bin  // RST/ALE/PSEN-/WR-/RD-
+
+:machine1:swaveform:remove             // Clear state waveforms
+:machine1:swaveform:insert 'ADDR', overlay  // Address lines
+:machine1:swaveform:insert 'DATA', overlay  // Data lines shared w/ ADDR
+:machine1:swaveform:insert 'STAT', overlay  // RST/ALE/PSEN-/WR-/RD-
+
+:menu 1,7                              // Show list display
+```
