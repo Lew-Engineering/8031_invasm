@@ -132,12 +132,75 @@ I8031.S or I80C310.S files for more details.
 
 # LOGIC ANALYZER CONFIGURATION
 
+This is expected to be used with a CPU with external EPROM for code
+and external SRAM for data.  The EA- input (DIP pin 31) must be tied low.
+       
+The logic analyzer should be configured as follows (167X assumed below):
+
+1. DATA label (8 bits) assigned to
+```
+     bit  0 = P0.0/AD0    DIP pin 39     POD 1, ch 0
+     bit  1 = P0.1/AD1    DIP pin 38     POD 1, ch 1
+     bit  2 = P0.2/AD2    DIP pin 37     POD 1, ch 2
+     bit  3 = P0.3/AD3    DIP pin 36     POD 1, ch 3
+     bit  4 = P0.4/AD4    DIP pin 35     POD 1, ch 4
+     bit  5 = P0.5/AD5    DIP pin 34     POD 1, ch 5
+     bit  6 = P0.6/AD6    DIP pin 33     POD 1, ch 6
+     bit  7 = P0.7/AD7    DIP pin 32     POD 1, ch 7
+```
+2. ADDR label (16 bits) assigned to
+```
+     bit  0 = P0.0/AD0    DIP pin 39     POD 1, ch 0
+     bit  1 = P0.1/AD1    DIP pin 38     POD 1, ch 1
+     bit  2 = P0.2/AD2    DIP pin 37     POD 1, ch 2
+     bit  3 = P0.3/AD3    DIP pin 36     POD 1, ch 3
+     bit  4 = P0.4/AD4    DIP pin 35     POD 1, ch 4
+     bit  5 = P0.5/AD5    DIP pin 34     POD 1, ch 5
+     bit  6 = P0.6/AD6    DIP pin 33     POD 1, ch 6
+     bit  7 = P0.7/AD7    DIP pin 32     POD 1, ch 7
+     bit  8 = P2.0/A8     DIP pin 21     POD 1, ch 8
+     bit  9 = P2.1/A9     DIP pin 22     POD 1, ch 9
+     bit 10 = P2.2/A10    DIP pin 23     POD 1, ch 10
+     bit 11 = P2.3/A11    DIP pin 24     POD 1, ch 11
+     bit 12 = P2.4/A12    DIP pin 25     POD 1, ch 12
+     bit 13 = P2.5/A13    DIP pin 26     POD 1, ch 13
+     bit 14 = P2.6/A14    DIP pin 27     POD 1, ch 14
+     bit 15 = P2.7/A15    DIP pin 28     POD 1, ch 15
+```
+3. STAT label (5 bits) assigned to
+```
+     bit  0 = RST         DIP pin 8      POD 2, ch 0
+     bit  1 = ALE         DIP pin 30     POD 1, J CLK, fall
+     bit  2 = PSEN-       DIP pin 29     POD 2, K CLK, rise
+     bit  3 = WR-         DIP pin 16     POD 3, L CLK, fall
+     bit  4 = RD-         DIP pin 17     POD 4, M CLK, rise
+```
+   Note the PSEN- and RD- bits will always be latched high due to the timing
+   of the clocks.  The inverse assembler does not consider the states of
+   those bits, but they are required for the proper clocking of the other
+   data, address, and state bits.
+
+4. Use "state" acquisition mode
+
+5. Set clocking to
+```
+     J-fall  = ALE
+     K-rise  = PSEN-
+     L-fall  = WR-
+     M-rise  = RD-
+```
+   That is, clock when
+   
+       ALE fall OR PSEN- rise OR WR- fall OR RD- rise
+
+   Setup time should be -0.5 ns, hold time 4.5 ns.
+   
+   Improper setup/hold time will cause the incorrect state of the 4 clock signals to appear in the STAT label.
+
+6. After loading the inverse assembler file, select "Invasm" in place of "Hex" for the "DATA" column in the listing display.
+
 The screenshots below are an example of how to set up the Agilent 1671G to be used with the 8031 inverse assembler.
 The setup for other logic analyzer models is similar, but may not be exactly the same.
-
-Loading the inverse assembler screen
-
-![file_load](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/0ca3e452-1bc0-41e5-acc0-a64c33b78511)
 
 Configuration screen
 
