@@ -273,3 +273,31 @@ Text including and after "//" are comments and are not part of the GPIB command.
 
 :menu 1,7                              // Show list display
 ```
+
+# USING THE LISTING DISPLAY
+
+1. After capturing data from the target system, if the DATA column shows
+   "undecoded data" or if the opcodes do not make sense (due to misalignment
+   with the start of an opcode), scroll the listing display so that the
+   adderess cycle for the start of a valid opcode is at the top line of the
+   display and select the "Invasm" button at the top of the screen.  This will
+   resynchronize the inverse assembler with captured data.
+   Note this "Invasm" button is NOT the same one used for the DATA column.
+
+2. Note that since the 8031 uses a multiplexed address/data bus, the 
+   lower 8 bits of the ADDR label will contain the opcode data on the
+   lines that display the instruction mnemonics.  The ADDR label of the
+   previous display line in the listing has the correct address for that
+   instruction.
+
+3. Decoded instructions will show the absolute 16-bit address as an operand
+   in place of the 8-bit relative address or 11-bit 2K window address.
+   Otherwise the symbol name will be displayed if ADDR symbols are defined,
+   either as user symbols or loaded via the Symbol Utility.  Symbols are
+   only used for the program address space, not the data address space.
+
+4. When setting a trigger based on the address, this must be done when
+   ALE is low, since data is multiplexed with the address bus.  However
+   note that dummy cycles often have the address of the next instruction
+   in memory, so you may end up triggering on a dummy cycle rather than
+   a real instruction cycle.
