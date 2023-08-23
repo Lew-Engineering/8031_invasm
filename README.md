@@ -103,13 +103,32 @@ Use the .BAT files described above, or see the instructions at the top of the
 I8031.S or I80C310.S files for more details.
 
 
-# USAGE
+# LOADING THE INVERSE ASSEMBLER ON THE LOGIC ANALYZER
 
-Detailed instructions for compiling, uploading, and using the inverse assemblers
-are included at the top of the I8031.S and I80C310.S files.
+1. Install the HP 10391B inverse assembler package described above on an MS-DOS PC or within the DOSBox application on a Windows or MacOS PC.
 
-The instructions also describe how to configure the logic analyzer and the
-connections to the microcontroller signal pins.
+2. Connect the COM1: serial port on the PC to the serial port on the logic analyzer.
+
+3. Run the following on the PC to install the 8031 inverse assmbler on the logic analyzer:
+```
+    8031.BAT
+```  
+  This will create a file named I8031 on the logic analyzer's file system.
+
+4. Run the following on the PC to install the DS80C310 inverser assembler on the logic analyzer:
+```
+    80C310.BAT
+```  
+  This will create a file named I80C310 on the logic analyzer's file system.
+
+5. Load the inverse assembler file I8031 or I80C310 using the logic analyzer's front panel controls.
+
+![file_load](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/0ca3e452-1bc0-41e5-acc0-a64c33b78511)
+
+   It can also be loaded via the following GPIB command on the 167XG:
+*      :mmemory:load:iassembler 'I8031',internal0,1,1
+   or
+*      :mmemory:load:iassembler 'I80C310',internal0,1,1
 
 # LOGIC ANALYZER CONFIGURATION
 
