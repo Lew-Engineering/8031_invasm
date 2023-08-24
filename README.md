@@ -80,6 +80,9 @@ Documentation for the development package is at
 
   https://www.keysight.com/us/en/assets/9018-01037/reference-guides/9018-01037.pdf
 
+It is only necessary to use the development package if you intend to modify the 8031 inverse assembler.
+If you want to use the inverse assembler as is, precompiled files that can be directly copied to
+the logic analyzer are in the bin directory.
 
 # DIRECTORIES
 
@@ -94,38 +97,49 @@ The "src" directory contains the inverse assembler source files.
 The "bin" directory contains the inverse assembler binary files that are output
 from the HP 10391B inverse assembler package.  These are included here as a
 convenience if the user does not want to compile the .S files.
-- I8031.R - compiled inverse assembler for standard 8031 microcontrollers
-- I80C310.R - compiled inverse assembler for high-speed 8031 compatible microcontrollers
-
-Note there is a special procedure for sending the .R files to the logic
-analyzer; they cannot be copied to the logic analyzer via floppy disk or FTP.
-Use the .BAT files described above, or see the instructions at the top of the
-I8031.S or I80C310.S files for more details.
-
+- I8031 - final inverse assembler binary for standard 8031 microcontrollers, to be loaded on the logic analzyer via ftp or floppy
+- I80C310 - final inverse assembler binary for high-speed 8031 compatible microcontrollers, to be loaded on the logic analyzer via ftp or floppy
+- I8031.R - intermediate compiled inverse assembler for standard 8031 microcontrollers, output from the development package
+- I80C310.R - intermediate compiled inverse assembler for high-speed 8031 compatible microcontrollers, output from the development package
 
 # LOADING THE INVERSE ASSEMBLER ON THE LOGIC ANALYZER
 
-1. Install the HP 10391B inverse assembler package described above on an MS-DOS PC or within the DOSBox application on a Windows or MacOS PC.
+1. Get the I8031 and I80C310 files from the bin directory of this repository.
 
-2. Connect the COM1: serial port on the PC to the serial port on the logic analyzer.
-
-3. Run the following on the PC to install the 8031 inverse assmbler on the logic analyzer:
+2. If the logic analyzer is connected to an Ethernet network, the I8031 and I80C310 files can be transfered
+   to the logic analyzer with the ftp command.
+   Below is the sequence for the 167XG; other models might be different.
+   Replace "ana" with the host name of your logic analyzer.
 ```
-    8031.BAT
-```  
-  This will create a file named I8031 on the logic analyzer's file system.
-
-4. Run the following on the PC to install the DS80C310 inverser assembler on the logic analyzer:
+% ftp ana
+Connected to ana.
+220    167XG V03.02 FUSION FTP server (Version 3.3) ready.
+Name (ana:user): data
+230 User DATA logged in.
+ftp> cd system/disk/hard
+200 Remote Directory changed to "/system/disk/hard".
+ftp> binary
+200 Type set to Image.
+ftp> put I8031
+200 PORT command ok.
+150 Opening data connection for I8031 (192.168.0.39,54117).
+226 Transfer complete.
+8192 bytes sent in 0.000166 seconds (47.1 Mbytes/s)
+ftp> put I80C310
+200 PORT command ok.
+150 Opening data connection for I80C310 (192.168.0.39,54117).
+226 Transfer complete.
+8192 bytes sent in 0.000166 seconds (47.1 Mbytes/s)
+ftp> 
 ```
-    80C310.BAT
-```  
-  This will create a file named I80C310 on the logic analyzer's file system.
 
-5. Load the inverse assembler file I8031 or I80C310 using the logic analyzer's front panel controls.
+3. If the logic analyzer is not connected to an Ethernet network, you can transfer the I8031 and I80C31 files via floppy disk.
+
+4. Activate the inverse assembler file I8031 or I80C310 using the logic analyzer's front panel controls.
 
 ![file_load](https://github.com/Lew-Engineering/8031_invasm/assets/108096699/0ca3e452-1bc0-41e5-acc0-a64c33b78511)
 
-   It can also be loaded via the following GPIB command on the 167XG:
+   It can also be activated via the following GPIB command on the 167XG:
 *      :mmemory:load:iassembler 'I8031',internal0,1,1
    or
 *      :mmemory:load:iassembler 'I80C310',internal0,1,1
