@@ -256,8 +256,8 @@ Text including and after "//" are comments and are not part of the GPIB command.
                                        // Master clock definition
 :machine1:sformat:master J, fall       // ALE falling
 :machine1:sformat:master K, ris        // PSEN- rising
-:machine1:sformat:master L, ris        // WR- falling
-:machine1:sformat:master M, fall       // RD- rising
+:machine1:sformat:master L, fall       // WR- falling
+:machine1:sformat:master M, ris        // RD- rising
 
 :machine1:sformat:sethold 1,9          // Setup/hold -0.5 ns / 4.5 ns on all 
 :machine1:sformat:sethold 2,9          // 4 pods
